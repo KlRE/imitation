@@ -205,7 +205,7 @@ class DictObs:
 # DictObs utilities
 
 
-Observation = Union[np.ndarray, DictObs]
+Observation = Union[np.ndarray, DictObs, list]
 ObsVar = TypeVar("ObsVar", np.ndarray, DictObs)
 
 
@@ -229,6 +229,8 @@ def stack_maybe_dictobs(arrs: List[ObsVar]) -> ObsVar:
     assert len(arrs) > 0
     if isinstance(arrs[0], DictObs):
         return DictObs.stack(arrs)
+    elif isinstance(arrs[0], np.ndarray):
+        return np.stack(arrs)
     else:
         return np.stack(arrs)
 
@@ -601,12 +603,13 @@ class Transitions(TransitionsMinimal):
     def __post_init__(self):
         """Performs input validation: check shapes & dtypes match docstring."""
         super().__post_init__()
-        if self.obs.shape != self.next_obs.shape:
+        if isinstance(self.obs, np.ndarray) and self.obs.shape != self.next_obs.shape or isinstance(self.obs, list) and len(self.obs) != len(self.next_obs):
             raise ValueError(
                 "obs and next_obs must have same shape: "
                 f"{self.obs.shape} != {self.next_obs.shape}",
             )
-        if self.obs.dtype != self.next_obs.dtype:
+
+        if isinstance(self.obs, np.ndarray) and self.obs.dtype != self.next_obs.dtype:
             raise ValueError(
                 "obs and next_obs must have the same dtype: "
                 f"{self.obs.dtype} != {self.next_obs.dtype}",
