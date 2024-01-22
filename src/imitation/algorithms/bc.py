@@ -31,6 +31,8 @@ from imitation.policies import base as policy_base
 from imitation.util import logger as imit_logger
 from imitation.util import util
 
+from torch.utils import data as th_data
+
 
 @dataclasses.dataclass(frozen=True)
 class BatchIteratorWithEpochEndCallback:
@@ -508,3 +510,49 @@ class BC(algo_base.DemonstrationAlgorithm):
             # if there remains an incomplete batch
             batch_num += 1
             process_batch()
+
+
+class BC_Pyg(BC):
+    def set_demonstrations(self, demonstrations: algo_base.AnyTransitions) -> None:
+
+        if isinstance(demonstrations, types.TransitionsMinimal):
+            if len(demonstrations) < self.minibatch_size:
+                raise ValueError(
+                    f"Number of transitions in `demonstrations` {len(demonstrations)} "
+                    f"is smaller than batch size {self.minibatch_size}.",
+                )
+
+        self._demo_data_loader = th_data.DataLoader(
+            demonstrations,
+            batch_size=self.minibatch_size,
+            collate_fn=types.transitions_collate_fn,
+        )
+
+def transitions_pyg_collate_fn(
+    batch
+):
+    """Custom `torch.utils.data.DataLoader` collate_fn for `Transitions with pyg`.
+
+    Use this as the `collate_fn` argument to `DataLoader` if using an instance of
+    `TransitionsMinimal` as the `dataset` argument.
+
+    Args:
+        batch: The batch to collate.
+
+    Returns:
+        A collated batch. Uses Torch's default collate function for everything
+        except the "infos" key. For "infos", we join all the info dicts into a
+        list of dicts. (The default behavior would recursively collate every
+        info dict into a single dict, which is incorrect.)
+    """
+    batch_acts_and_dones = [
+        {k: np.array(v) for k, v in sample.items() if k in ["acts", "dones"]}
+        for sample in batch
+    ]
+
+    result = th_data.dataloader.default_collate(batch_acts_and_dones)
+    assert isinstance(result, dict)
+    result["infos"] = [sample["infos"] for sample in batch]
+    result["obs"] = [np.asarray(sample["obs"]) for sample in batch]
+    result["next_obs"] = [np.asarray(sample["next_obs"]) for sample in batch]
+    return result
