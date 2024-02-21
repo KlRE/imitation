@@ -33,6 +33,7 @@ from imitation.util import util
 
 from torch.utils import data as th_data
 from torch_geometric.loader import DataLoader
+import wandb
 
 
 @dataclasses.dataclass(frozen=True)
@@ -122,11 +123,12 @@ class BehaviorCloningLossCalculator:
             A BCTrainingMetrics object with the loss and all the components it
             consists of.
         """
-        # tensor_obs = types.map_maybe_dict(
-        #     util.safe_to_tensor,
-        #     types.maybe_unwrap_dictobs(obs),
-        # )
+
         tensor_obs = obs
+            # tensor_obs = types.map_maybe_dict(
+            #     util.safe_to_tensor,
+            #     types.maybe_unwrap_dictobs(obs),
+            # )
         acts = util.safe_to_tensor(acts)
 
         # policy.evaluate_actions's type signatures are incorrect.
@@ -529,6 +531,7 @@ class BC_Pyg(BC):
             batch_size=self.minibatch_size,
             collate_fn=types.transitions_collate_fn,
         )
+        self.batch_count = 0
 
     def train(
         self,
@@ -537,7 +540,7 @@ class BC_Pyg(BC):
         n_batches: Optional[int] = None,
         on_epoch_end: Optional[Callable[[], None]] = None,
         on_batch_end: Optional[Callable[[], None]] = None,
-        log_interval: int = 500,
+        log_interval: int = 100,
         log_rollouts_venv: Optional[vec_env.VecEnv] = None,
         log_rollouts_n_episodes: int = 5,
         progress_bar: bool = True,
@@ -627,6 +630,9 @@ class BC_Pyg(BC):
                     training_metrics,
                     rollout_stats,
                 )
+                #print({'batch': self.batch_count, 'loss': training_metrics.loss, 'entropy': training_metrics.entropy, 'prob_true_act': training_metrics.prob_true_act, 'neglogp': training_metrics.neglogp })
+                wandb.log({'batch': self.batch_count, 'loss': training_metrics.loss, 'entropy': training_metrics.entropy, 'prob_true_act': training_metrics.prob_true_act, 'neglogp': training_metrics.neglogp })
+                self.batch_count += log_interval
 
             if on_batch_end is not None:
                 on_batch_end()
