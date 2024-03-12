@@ -535,6 +535,7 @@ class BC_Pyg(BC):
             demonstrations,
             batch_size=self.minibatch_size,
             collate_fn=types.transitions_collate_fn,
+            shuffle=True,
         )
         self.batch_count = 0
 
