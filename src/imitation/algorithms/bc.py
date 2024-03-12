@@ -496,7 +496,8 @@ class BC(algo_base.DemonstrationAlgorithm):
             obs_tensor = types.map_maybe_dict(
                 lambda x: util.safe_to_tensor(x, device=self.policy.device),
                 types.maybe_unwrap_dictobs(batch["obs"]),
-            )
+            ).to(th.float32)
+
             acts = util.safe_to_tensor(batch["acts"], device=self.policy.device)
             training_metrics = self.loss_calculator(self.policy, obs_tensor, acts)
 
