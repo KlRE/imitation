@@ -373,6 +373,7 @@ class BC(algo_base.DemonstrationAlgorithm):
         )
 
         self.loss_calculator = BehaviorCloningLossCalculator(ent_weight, l2_weight)
+        self.batch_count = 0
 
     @property
     def policy(self) -> policies.ActorCriticPolicy:
@@ -481,6 +482,9 @@ class BC(algo_base.DemonstrationAlgorithm):
                     training_metrics,
                     rollout_stats,
                 )
+
+                wandb.log({'batch': self.batch_count, 'loss': training_metrics.loss, 'entropy': training_metrics.entropy, 'prob_true_act': training_metrics.prob_true_act, 'neglogp': training_metrics.neglogp })
+                self.batch_count += log_interval
 
             if on_batch_end is not None:
                 on_batch_end()
