@@ -112,7 +112,9 @@ class RewardNet(nn.Module, abc.ABC):
         done_th = done_th.to(th.float32)
 
         n_gen = len(state_th)
-        assert state_th.shape == next_state_th.shape
+
+        #assert state_th.shape == next_state_th.shape doesnt work with variable number pointclouds
+        assert state_th.shape[0] == next_state_th.shape[0]
         assert len(action_th) == n_gen
 
         return state_th, action_th, next_state_th, done_th
