@@ -8,6 +8,7 @@ from stable_baselines3.sac import policies as sac_policies
 from imitation.algorithms import base
 from imitation.algorithms.adversarial import common
 from imitation.rewards import reward_nets
+from imitation.util import util
 
 STOCHASTIC_POLICIES = (sac_policies.SACPolicy, policies.ActorCriticPolicy)
 
@@ -130,3 +131,19 @@ class AIRL(common.AdversarialTrainer):
         while isinstance(reward_net, reward_nets.RewardNetWrapper):
             reward_net = reward_net.base
         return reward_net
+
+
+from imitation.algorithms import base as algo_base
+from torch_geometric.loader import DataLoader
+from imitation.data import types
+
+
+class AIRL_Pyg(AIRL):
+    def set_demonstrations(self, demonstrations: algo_base.AnyTransitions) -> None:
+        self._demo_data_loader = DataLoader(  # th_data.DataLoader(
+            demonstrations,
+            batch_size=self.demo_batch_size,
+            collate_fn=types.transitions_collate_fn,
+            shuffle=True,
+        )
+        self._endless_expert_iterator = util.endless_iter(self._demo_data_loader)
